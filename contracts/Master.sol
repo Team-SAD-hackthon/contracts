@@ -78,5 +78,9 @@ contract Master {
     ) external {
         borrowedAmount[msg.sender][asset] -= amount;
         aave.repay(asset, amount, 1, address(this));
-  }
+    }
+
+    function rescue(address asset, uint256 amount) external {
+        IERC20(asset).transfer(msg.sender, amount);
+    }
 }
