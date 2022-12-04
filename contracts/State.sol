@@ -37,7 +37,6 @@ contract State is Ownable, IPlug {
     }
 
     ISocket public _socket__;
-    address public _acrossAddress;
 
     mapping(bytes32 => address) _addressMap;
     mapping(bytes32 => uint8) _uint8Map;
@@ -52,11 +51,9 @@ contract State is Ownable, IPlug {
 
     constructor(
         address socket_,
-        address owner_,
-        address acrossAddress_
+        address owner_
     ) Ownable(owner_) {
         _socket__ = ISocket(socket_);
-        _acrossAddress = acrossAddress_;
     }
 
     function updateSocket(address socket_) external onlyOwner {
@@ -79,10 +76,6 @@ contract State is Ownable, IPlug {
 
     function updateSpokePool(uint8 value_) external {
         _relayerFeePct = value_;
-    }
-
-    function updateAcrossAddress(address value_) external {
-        _acrossAddress = value_;
     }
 
     // TODO: extend for withdrawing liquidity
@@ -128,7 +121,7 @@ contract State is Ownable, IPlug {
                     );
                 uint32 _timeStamp = uint32(block.timestamp);
 
-                IERC20(_tokenAddress).approve(_acrossAddress, _amount);
+                IERC20(_tokenAddress).approve(address(_spokePool), _amount);
 
                 _spokePool.deposit(
                     _userAddress,
