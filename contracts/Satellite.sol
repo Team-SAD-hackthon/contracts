@@ -12,7 +12,9 @@ contract Satellite is Ownable, IPlug {
     address public _controllerAddress;
     uint256 public _controllerChainSlug;
 
-    constructor(address socket_, address owner_) Ownable(_owner) {
+    error NoInbound();
+
+    constructor(address socket_, address owner_) Ownable(owner_) {
         _socket__ = ISocket(socket_);
     }
 
@@ -50,7 +52,7 @@ contract Satellite is Ownable, IPlug {
         uint256 amount_,
         bytes calldata controllerCalldata_
     ) external {
-        IERC20(asset).transferFrom(msg.sender, address(this), amount);
+        IERC20(token_).transferFrom(msg.sender, address(this), amount_);
         // IERC20(asset).approve(across, amount);
         // TODO: deposit to across
 
@@ -61,6 +63,9 @@ contract Satellite is Ownable, IPlug {
             controllerCalldata_
         );
         _socket__.outbound(_controllerChainSlug, controllerGasLimit_, payload);
+    }
 
+    function inbound(bytes calldata) external payable {
+        revert NoInbound();
     }
 }

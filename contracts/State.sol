@@ -37,7 +37,7 @@ contract State is Ownable, IPlug {
 
     error NotSocket();
 
-    constructor(address socket_, address owner_) Ownable(_owner) {
+    constructor(address socket_, address owner_) Ownable(owner_) {
         _socket__ = ISocket(socket_);
     }
 
@@ -57,12 +57,12 @@ contract State is Ownable, IPlug {
     }
 
     // TODO: extend for withdrawing liquidity
-    function inbound(bytes calldata payload_) external {
+    function inbound(bytes calldata payload_) external payable {
         if (msg.sender != address(_socket__)) revert NotSocket();
-        (StateUpdate[] updates) = abi.decode(payload, (StateUpdate[]));
+        (StateUpdate[] memory updates) = abi.decode(payload_, (StateUpdate[]));
         uint256 len = updates.length;
-        for (uint256 i = 0; i < updates.length; i++) {
-            StateUpdate update = updates[i];
+        for (uint256 i = 0; i < len; i++) {
+            StateUpdate memory update = updates[i];
             if (update.updateType == UpdateType.ADDRESS) {
                 (address value) = abi.decode(update.value, (address));
                 _addressMap[update.variable] = value;
