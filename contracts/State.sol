@@ -4,6 +4,7 @@ pragma solidity 0.8.17;
 import "./interfaces/IPlug.sol";
 import "./interfaces/ISocket.sol";
 import "./utils/Ownable.sol";
+import "./interfaces/IERC20.sol";
 
 interface SpokePool {
     function deposit(
@@ -48,7 +49,10 @@ contract State is Ownable, IPlug {
 
     error NotSocket();
 
-    constructor(address socket_, address owner_) Ownable(owner_) {
+    constructor(
+        address socket_,
+        address owner_
+    ) Ownable(owner_) {
         _socket__ = ISocket(socket_);
     }
 
@@ -70,11 +74,10 @@ contract State is Ownable, IPlug {
     SpokePool public _spokePool;
     uint8 public _relayerFeePct = 1;
 
-    function updateSpokePool(uint8 value_) external {
+    function updateRelayerFeePct(uint8 value_) external {
         _relayerFeePct = value_;
     }
 
-    // TODO: extend for withdrawing liquidity
     function inbound(bytes calldata payload_) external payable {
         if (msg.sender != address(_socket__)) revert NotSocket();
         StateUpdate[] memory updates = abi.decode(payload_, (StateUpdate[]));
@@ -116,6 +119,8 @@ contract State is Ownable, IPlug {
                         (address, address, uint256, uint8)
                     );
                 uint32 _timeStamp = uint32(block.timestamp);
+
+                IERC20(_tokenAddress).approve(address(_spokePool), _amount);
 
                 _spokePool.deposit(
                     _userAddress,
