@@ -9,26 +9,39 @@ import "./utils/Ownable.sol";
 // TODO: use safeTransferFrom and safeIncreaseAllowance
 contract Satellite is Ownable, IPlug {
     ISocket public _socket__;
-    address public _controllerAddress;
     uint256 public _controllerChainSlug;
+    uint256 public _satelliteSlug;
+    uint256 public _stateChainSlug;
+    address public _stateAddress;
 
     error NoInbound();
 
-    constructor(address socket_, address owner_) Ownable(owner_) {
+    constructor(address socket_, address owner_, uint256 satelliteSlug_) Ownable(owner_) {
         _socket__ = ISocket(socket_);
+        _satelliteSlug = satelliteSlug_;
     }
 
     function updateSocket(address socket_) external onlyOwner {
         _socket__ = ISocket(socket_);
     }
 
-    function configure(
+    function updateSatelliteSlug(uint256 satelliteSlug_) external onlyOwner {
+        _satelliteSlug = satelliteSlug_;
+    }
+
+    function configureState(
+        uint256 stateChainSlug_,
+        address stateAddress_
+    ) external {
+        _stateChainSlug = stateChainSlug_;
+        _stateAddress = stateAddress_;
+    }
+
+    function configureController(
         uint256 controllerChainSlug_,
         address controllerAddress_
     ) external onlyOwner {
-        _controllerAddress = controllerAddress_;
         _controllerChainSlug = controllerChainSlug_;
-
         _socket__.setPlugConfig(
             controllerChainSlug_,
             controllerAddress_,
@@ -41,6 +54,7 @@ contract Satellite is Ownable, IPlug {
             address(0x0), // token address
             uint256(0x0), // token amount
             msg.sender,
+            _satelliteSlug,
             controllerCalldata_
         );
         _socket__.outbound(_controllerChainSlug, controllerGasLimit_, payload);
@@ -54,12 +68,14 @@ contract Satellite is Ownable, IPlug {
     ) external {
         IERC20(token_).transferFrom(msg.sender, address(this), amount_);
         // IERC20(asset).approve(across, amount);
-        // TODO: deposit to across
+        // TODO: bridge tokens to state using across
+        // TODO: reduce across fees from amount
 
         bytes memory payload = abi.encode(
             token_,
             amount_,
             msg.sender,
+            _satelliteSlug,
             controllerCalldata_
         );
         _socket__.outbound(_controllerChainSlug, controllerGasLimit_, payload);
