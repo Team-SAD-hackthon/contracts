@@ -1,5 +1,6 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("dotenv").config();
+require("hardhat-change-network");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {

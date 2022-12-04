@@ -1,8 +1,28 @@
 const fs = require("fs");
 const hre = require("hardhat");
 const inquirer = require("inquirer");
-let userParams;
+const ethers = require("ethers");
 
+function getJsonRpcUrl(chain) {
+  let jsonRpcUrl;
+  switch (chain) {
+    case "arbitrum":
+      jsonRpcUrl = "https://arb1.arbitrum.io/rpc";
+      break;
+    case "optimism":
+      jsonRpcUrl = "https://mainnet.optimism.io/";
+      break;
+    case "polygon":
+      jsonRpcUrl = "https://polygon-rpc.com";
+      break;
+    default:
+      jsonRpcUrl = "";
+  }
+
+  return jsonRpcUrl;
+}
+
+let userParams;
 async function readFileData(path, fileName) {
   // getting the data from the file
   const dataToWrite = await fs.promises.readFile(path, (error, data) => {
@@ -20,7 +40,11 @@ async function readFileData(path, fileName) {
 }
 
 async function deployContract(contractName, arg) {
-  const Master = await hre.ethers.getContractFactory(`${contractName}`);
+  const provider = new ethers.providers.JsonRpcProvider(getJsonRpcUrl("polygon"));
+  const l1Wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+  const Master = await (
+    await hre.ethers.getContractFactory(`${contractName}`)
+  ).connect(l1Wallet);
   const mock = await Master.deploy(arg);
 
   await mock.deployed();
@@ -64,7 +88,7 @@ inquirer
     console.log("log", answers);
     // Make smart contract file
     await readFileData(answers.protocol, answers.protocolName);
-    // // Deploy the contract
+    // Deploy the contract
     deployContract(answers.protocolName, answers.arg);
   })
   .catch((error) => {
@@ -74,3 +98,6 @@ inquirer
       // Something else went wrong
     }
   });
+
+// /Users/salilnaik/Documents/projects/socket/plugathon/contracts/Master.sol
+// 0x794a61358d6845594f94dc1db02a252b5b4814ad
