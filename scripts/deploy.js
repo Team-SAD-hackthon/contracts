@@ -8,7 +8,7 @@ const hre = require("hardhat");
 
 async function main() {
   const Master = await hre.ethers.getContractFactory("Master");
-  const mock = await Master.deploy("0x794a61358D6845594F94dc1DB02A252b5b4814aD");
+  const mock = await Master.deploy("0x794a61358d6845594f94dc1db02a252b5b4814ad");
 
   await mock.deployed();
 }
