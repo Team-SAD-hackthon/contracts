@@ -74,7 +74,7 @@ contract State is Ownable, IPlug {
     SpokePool public _spokePool;
     uint8 public _relayerFeePct = 1;
 
-    function updateSpokePool(uint8 value_) external {
+    function updateRelayerFeePct(uint8 value_) external {
         _relayerFeePct = value_;
     }
 
