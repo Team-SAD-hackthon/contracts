@@ -26,9 +26,14 @@ contract Satellite is Hack, IPlug {
     uint256 public _satelliteSlug;
     uint256 public _stateChainSlug;
     address public _stateAddress;
-    uint8 public _relayerFeePct = 1;
+    uint64 public _relayerFeePct = 1e18;
+
+    // TODO: expand for non usdc
+    // chainSlug => usdc address
+    mapping(uint256 => address) _usdcTokenAddresses;
 
     error NoInbound();
+    error NotUSDC();
 
     constructor(
         address socket_,
@@ -37,6 +42,10 @@ contract Satellite is Hack, IPlug {
     ) Hack(owner_) {
         _socket__ = ISocket(socket_);
         _satelliteSlug = satelliteSlug_;
+
+        _usdcTokenAddresses[10] = 0x7F5c764cBc14f9669B88837ca1490cCa17c31607;
+        _usdcTokenAddresses[137] = 0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174;
+        _usdcTokenAddresses[42161] = 0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8;
     }
 
     function updateSocket(address socket_) external onlyOwner {
@@ -49,6 +58,10 @@ contract Satellite is Hack, IPlug {
 
     function updateSatelliteSlug(uint256 satelliteSlug_) external onlyOwner {
         _satelliteSlug = satelliteSlug_;
+    }
+
+    function updateUSDCAddress(uint256 chainSlug_, address usdc_) external onlyOwner {
+        _usdcTokenAddresses[chainSlug_] = usdc_;
     }
 
     function configureState(uint256 stateChainSlug_, address stateAddress_)
@@ -90,23 +103,32 @@ contract Satellite is Hack, IPlug {
         uint256 amount_,
         bytes calldata controllerCalldata_
     ) external {
-        IERC20(token_).transferFrom(msg.sender, address(this), amount_);
-        IERC20(token_).approve(address(_spokePool), amount_);
-        uint32 _timeStamp = uint32(block.timestamp);
-        _spokePool.deposit(
-            _stateAddress,
-            token_,
-            amount_,
-            _stateChainSlug,
-            _relayerFeePct,
-            _timeStamp
-        );
+        if (token_ != _usdcTokenAddresses[_satelliteSlug]) revert NotUSDC();
+        IERC20 token__ = IERC20(token_);
+        token__.transferFrom(msg.sender, address(this), amount_);
 
-        uint256 _finalAmount = amount_ - (amount_ * (_relayerFeePct / 100));
+        uint256 finalAmount;
+        if (_stateChainSlug != _satelliteSlug) {
+            token__.approve(address(_spokePool), amount_);
+            uint32 _timeStamp = uint32(block.timestamp);
+            _spokePool.deposit(
+                _stateAddress,
+                token_,
+                amount_,
+                _stateChainSlug,
+                _relayerFeePct,
+                _timeStamp
+            );
+            finalAmount = amount_ - (amount_ * (_relayerFeePct / 100));
+        } else {
+            token__.transfer(_stateAddress, amount_);
+            finalAmount = amount_;
+        }
 
         bytes memory payload = abi.encode(
-            token_,
-            _finalAmount,
+            // send state chain token address for unified accounting
+            _usdcTokenAddresses[_stateChainSlug],
+            finalAmount,
             msg.sender,
             _satelliteSlug,
             controllerCalldata_

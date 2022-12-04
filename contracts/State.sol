@@ -37,6 +37,9 @@ contract State is Hack, IPlug {
     }
 
     ISocket public _socket__;
+    uint256 _stateChainSlug;
+    SpokePool public _spokePool;
+    uint64 public _relayerFeePct = 1e18;
 
     mapping(bytes32 => address) _addressMap;
     mapping(bytes32 => uint8) _uint8Map;
@@ -51,9 +54,11 @@ contract State is Hack, IPlug {
 
     constructor(
         address socket_,
-        address owner_
+        address owner_,
+        uint256 stateChainSlug_
     ) Hack(owner_) {
         _socket__ = ISocket(socket_);
+        _stateChainSlug = stateChainSlug_;
     }
 
     function updateSocket(address socket_) external onlyOwner {
@@ -71,10 +76,7 @@ contract State is Hack, IPlug {
         );
     }
 
-    SpokePool public _spokePool;
-    uint8 public _relayerFeePct = 1;
-
-    function updateRelayerFeePct(uint8 value_) external {
+    function updateRelayerFeePct(uint64 value_) external {
         _relayerFeePct = value_;
     }
 
@@ -114,27 +116,41 @@ contract State is Hack, IPlug {
                 _bytes32Map[update.variable] = value;
             } else if (update.updateType == UpdateType.WITHDRAW) {
                 (
-                    address _userAddress,
-                    address _tokenAddress,
-                    uint256 _amount,
-                    uint8 _chainId
+                    address userAddress,
+                    address tokenAddress,
+                    uint256 amount,
+                    uint256 chainId
                 ) = abi.decode(
-                        update.value,
-                        (address, address, uint256, uint8)
-                    );
-                uint32 _timeStamp = uint32(block.timestamp);
-
-                IERC20(_tokenAddress).approve(address(_spokePool), _amount);
-
-                _spokePool.deposit(
-                    _userAddress,
-                    _tokenAddress,
-                    _amount,
-                    _chainId,
-                    _relayerFeePct,
-                    _timeStamp
+                    update.value,
+                    (address, address, uint256, uint256)
                 );
+                handleWithdraw(userAddress, tokenAddress, amount, chainId);
             }
+        }
+    }
+
+    function handleWithdraw(
+        address userAddress_,
+        address tokenAddress_,
+        uint256 amount_,
+        uint256 chainId_
+    ) private {
+        IERC20 token__ = IERC20(tokenAddress_);
+        if (chainId_ != _stateChainSlug) {
+            uint32 _timeStamp = uint32(block.timestamp);
+
+            token__.approve(address(_spokePool), amount_);
+
+            _spokePool.deposit(
+                userAddress_,
+                tokenAddress_,
+                amount_,
+                chainId_,
+                _relayerFeePct,
+                _timeStamp
+            );
+        } else {
+            token__.transfer(userAddress_, amount_);
         }
     }
 }

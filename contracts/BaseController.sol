@@ -27,7 +27,7 @@ abstract contract BaseController is Hack, IPlug, ControllerStateCache {
         _socket__ = ISocket(socket_);
     }
 
-    modifier SatteliteCall {
+    modifier onlySatteliteCall {
         if (msg.sender != address(this)) revert NotSattelite();
         _;
     }
