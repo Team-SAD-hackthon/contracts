@@ -18,6 +18,7 @@ interface SpokePool {
 }
 
 // TODO: use safeTransferFrom and safeIncreaseAllowance
+// TODO: no dl/ll needed in case on same chain contracts
 contract Satellite is Ownable, IPlug {
     ISocket public _socket__;
     SpokePool public _spokePool;

@@ -4,12 +4,11 @@ pragma solidity 0.8.17;
 import "./interfaces/IPlug.sol";
 import "./interfaces/ISocket.sol";
 import "./interfaces/IERC20.sol";
+import "./StateWriter.sol";
 import "./utils/Ownable.sol";
+import "./ControllerStateCache.sol";
 
-// TODO: initiate state write from different contract since plugs can talk to
-//      only one contract on remote chain, and we wanna talk to both satellite
-//      and state
-contract Controller is Ownable, IPlug {
+contract Controller is Ownable, IPlug, ControllerStateCache {
     struct Msg {
         address token;
         uint256 amount;
@@ -18,7 +17,7 @@ contract Controller is Ownable, IPlug {
     }
 
     ISocket public _socket__;
-    uint256 public _stateChainSlug;
+    StateWriter public _stateWritter__;
     Msg internal _msg;
 
     error NotSocket();
@@ -33,20 +32,12 @@ contract Controller is Ownable, IPlug {
         _;
     }
 
-    function updateSocket(address socket_) external onlyOwner {
-        _socket__ = ISocket(socket_);
+    function updateStateWriter(address stateWriter_) external onlyOwner {
+        _stateWritter__ = StateWriter(stateWriter_);
     }
 
-    function configureState(
-        uint256 stateChainSlug_,
-        address stateAddress_
-    ) external onlyOwner {
-        _stateChainSlug = stateChainSlug_;
-        _socket__.setPlugConfig(
-            stateChainSlug_,
-            stateAddress_,
-            "FAST"
-        );
+    function updateSocket(address socket_) external onlyOwner {
+        _socket__ = ISocket(socket_);
     }
 
     function configureSatellite(
@@ -82,10 +73,10 @@ contract Controller is Ownable, IPlug {
             callData
         );
 
+        bytes memory payload = abi.encode(_stateUpdates);
+        _stateWritter__.writeState(payload);
+
+        delete _stateUpdates;
         delete _msg;
-    }
-
-    function deposit(address a, uint256 b) external {
-
     }
 }
