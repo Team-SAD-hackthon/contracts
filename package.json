@@ -1,11 +1,15 @@
 {
-  "name": "hardhat-project",
+  "name": "socket-circuit",
+  "version": "0.0.2",
   "type": "commonjs",
+  "main": "src/index.js",
   "dependencies": {
     "@nomicfoundation/hardhat-toolbox": "^2.0.0",
     "dotenv": "^16.0.3",
     "hardhat": "^2.12.3",
-    "inquirer": "^8.0.0"
+    "hardhat-change-network": "^0.0.7",
+    "inquirer": "^8.0.0",
+    "socket-circuit": "^0.0.1"
   },
   "devDependencies": {
     "@ethersproject/providers": "^5.7.2",
