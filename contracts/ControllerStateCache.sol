@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.17;
 
-contract ControllerStateCache {
+abstract contract ControllerStateCache {
     mapping(bytes32 => address) _addressMap;
     mapping(bytes32 => uint8) _uint8Map;
     mapping(bytes32 => uint64) _uint64Map;

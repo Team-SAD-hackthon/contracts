@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.17;
+import "./Hack.sol";
 import "./interfaces/ISocket.sol";
-import "./utils/Ownable.sol";
 import "./interfaces/IPlug.sol";
 
-contract StateWriter is Ownable, IPlug {
+contract StateWriter is Hack, IPlug {
     ISocket public _socket__;
     uint256 public _stateChainSlug;
     address public _controller;
@@ -13,7 +13,7 @@ contract StateWriter is Ownable, IPlug {
     error NotController();
     error NoInbound();
 
-    constructor(address socket_, address owner_, address controller_) Ownable(owner_) {
+    constructor(address socket_, address owner_, address controller_) Hack(owner_) {
         _socket__ = ISocket(socket_);
         _controller = controller_;
     }

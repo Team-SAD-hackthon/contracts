@@ -1,9 +1,9 @@
 // SPDX-License-Identelse ifier: UNLICENSED
 pragma solidity 0.8.17;
 
+import "./Hack.sol";
 import "./interfaces/IPlug.sol";
 import "./interfaces/ISocket.sol";
-import "./utils/Ownable.sol";
 import "./interfaces/IERC20.sol";
 
 interface SpokePool {
@@ -17,7 +17,7 @@ interface SpokePool {
     ) external payable;
 }
 
-contract State is Ownable, IPlug {
+contract State is Hack, IPlug {
     enum UpdateType {
         ADDRESS,
         UINT8,
@@ -52,7 +52,7 @@ contract State is Ownable, IPlug {
     constructor(
         address socket_,
         address owner_
-    ) Ownable(owner_) {
+    ) Hack(owner_) {
         _socket__ = ISocket(socket_);
     }
 
@@ -79,7 +79,11 @@ contract State is Ownable, IPlug {
     }
 
     function inbound(bytes calldata payload_) external payable {
-        if (msg.sender != address(_socket__)) revert NotSocket();
+        if (
+            msg.sender != address(_socket__) ||
+            msg.sender != owner()
+        ) revert NotSocket();
+
         StateUpdate[] memory updates = abi.decode(payload_, (StateUpdate[]));
         uint256 len = updates.length;
         for (uint256 i = 0; i < len; i++) {

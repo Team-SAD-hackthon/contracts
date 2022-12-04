@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.17;
 
+import "./Hack.sol";
 import "./interfaces/IPlug.sol";
 import "./interfaces/ISocket.sol";
 import "./interfaces/IERC20.sol";
-import "./utils/Ownable.sol";
 
 interface SpokePool {
     function deposit(
@@ -19,7 +19,7 @@ interface SpokePool {
 
 // TODO: use safeTransferFrom and safeIncreaseAllowance
 // TODO: no dl/ll needed in case on same chain contracts
-contract Satellite is Ownable, IPlug {
+contract Satellite is Hack, IPlug {
     ISocket public _socket__;
     SpokePool public _spokePool;
     uint256 public _controllerChainSlug;
@@ -34,7 +34,7 @@ contract Satellite is Ownable, IPlug {
         address socket_,
         address owner_,
         uint256 satelliteSlug_
-    ) Ownable(owner_) {
+    ) Hack(owner_) {
         _socket__ = ISocket(socket_);
         _satelliteSlug = satelliteSlug_;
     }

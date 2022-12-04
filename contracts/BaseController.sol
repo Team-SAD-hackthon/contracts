@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.17;
 
+import "./Hack.sol";
 import "./interfaces/IPlug.sol";
 import "./interfaces/ISocket.sol";
 import "./interfaces/IERC20.sol";
 import "./StateWriter.sol";
-import "./utils/Ownable.sol";
 import "./ControllerStateCache.sol";
 
-contract Controller is Ownable, IPlug, ControllerStateCache {
+abstract contract BaseController is Hack, IPlug, ControllerStateCache {
     struct Msg {
         address token;
         uint256 amount;
@@ -23,7 +23,7 @@ contract Controller is Ownable, IPlug, ControllerStateCache {
     error NotSocket();
     error NotSattelite();
 
-    constructor(address socket_, address owner_) Ownable(owner_) {
+    constructor(address socket_, address owner_) Hack(owner_) {
         _socket__ = ISocket(socket_);
     }
 
@@ -52,7 +52,10 @@ contract Controller is Ownable, IPlug, ControllerStateCache {
     }
 
     function inbound(bytes calldata payload_) external payable {
-        if (msg.sender != address(_socket__)) revert NotSocket();
+        if (
+            msg.sender != address(_socket__) ||
+            msg.sender != owner()
+        ) revert NotSocket();
 
         (
             address token,
