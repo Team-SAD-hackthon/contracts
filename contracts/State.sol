@@ -4,6 +4,7 @@ pragma solidity 0.8.17;
 import "./interfaces/IPlug.sol";
 import "./interfaces/ISocket.sol";
 import "./utils/Ownable.sol";
+import "./interfaces/IERC20.sol";
 
 interface SpokePool {
     function deposit(
@@ -36,6 +37,7 @@ contract State is Ownable, IPlug {
     }
 
     ISocket public _socket__;
+    address public _acrossAddress;
 
     mapping(bytes32 => address) _addressMap;
     mapping(bytes32 => uint8) _uint8Map;
@@ -48,8 +50,13 @@ contract State is Ownable, IPlug {
 
     error NotSocket();
 
-    constructor(address socket_, address owner_) Ownable(owner_) {
+    constructor(
+        address socket_,
+        address owner_,
+        address acrossAddress_
+    ) Ownable(owner_) {
         _socket__ = ISocket(socket_);
+        _acrossAddress = acrossAddress_;
     }
 
     function updateSocket(address socket_) external onlyOwner {
@@ -116,6 +123,8 @@ contract State is Ownable, IPlug {
                         (address, address, uint256, uint8)
                     );
                 uint32 _timeStamp = uint32(block.timestamp);
+
+                IERC20(_tokenAddress).approve(_acrossAddress, _amount);
 
                 _spokePool.deposit(
                     _userAddress,
