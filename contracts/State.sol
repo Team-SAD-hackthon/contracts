@@ -78,7 +78,6 @@ contract State is Ownable, IPlug {
         _relayerFeePct = value_;
     }
 
-    // TODO: extend for withdrawing liquidity
     function inbound(bytes calldata payload_) external payable {
         if (msg.sender != address(_socket__)) revert NotSocket();
         StateUpdate[] memory updates = abi.decode(payload_, (StateUpdate[]));

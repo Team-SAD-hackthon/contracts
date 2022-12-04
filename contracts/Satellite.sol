@@ -25,7 +25,6 @@ contract Satellite is Ownable, IPlug {
     uint256 public _satelliteSlug;
     uint256 public _stateChainSlug;
     address public _stateAddress;
-    uint32 _timeStamp = uint32(block.timestamp);
     uint8 public _relayerFeePct = 1;
 
     error NoInbound();
@@ -92,6 +91,7 @@ contract Satellite is Ownable, IPlug {
     ) external {
         IERC20(token_).transferFrom(msg.sender, address(this), amount_);
         IERC20(token_).approve(address(_spokePool), amount_);
+        uint32 _timeStamp = uint32(block.timestamp);
         _spokePool.deposit(
             _stateAddress,
             token_,
