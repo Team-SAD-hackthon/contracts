@@ -44,7 +44,8 @@ contract StateWriter is Hack, IPlug {
 
     function writeState(bytes calldata payload_) external {
         if (msg.sender != _controller) revert NotController();
-        _socket__.outbound(_stateChainSlug, _gasLimit, payload_);
+        _socket__.outbound{value: 0.0001 ether}
+            (_stateChainSlug, _gasLimit, payload_);
     }
 
     function inbound(bytes calldata) external payable {

@@ -26,7 +26,7 @@ contract Satellite is Hack, IPlug {
     uint256 public _satelliteSlug;
     uint256 public _stateChainSlug;
     address public _stateAddress;
-    uint64 public _relayerFeePct = 1e18;
+    uint64 public _relayerFeePct = 1e16;
 
     // TODO: expand for non usdc
     // chainSlug => usdc address
@@ -94,7 +94,8 @@ contract Satellite is Hack, IPlug {
             _satelliteSlug,
             controllerCalldata_
         );
-        _socket__.outbound(_controllerChainSlug, controllerGasLimit_, payload);
+        _socket__.outbound{value: 0.0001 ether}
+            (_controllerChainSlug, controllerGasLimit_, payload);
     }
 
     function callControllerWithTokens(
@@ -119,7 +120,7 @@ contract Satellite is Hack, IPlug {
                 _relayerFeePct,
                 _timeStamp
             );
-            finalAmount = amount_ - (amount_ * (_relayerFeePct / 100));
+            finalAmount = (amount_ * (1e18 - _relayerFeePct)) / 1e18;
         } else {
             token__.transfer(_stateAddress, amount_);
             finalAmount = amount_;
@@ -133,7 +134,8 @@ contract Satellite is Hack, IPlug {
             _satelliteSlug,
             controllerCalldata_
         );
-        _socket__.outbound(_controllerChainSlug, controllerGasLimit_, payload);
+        _socket__.outbound{value: 0.0001 ether}
+            (_controllerChainSlug, controllerGasLimit_, payload);
     }
 
     function inbound(bytes calldata) external payable {

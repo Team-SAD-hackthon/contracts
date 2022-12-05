@@ -39,7 +39,7 @@ contract State is Hack, IPlug {
     ISocket public _socket__;
     uint256 _stateChainSlug;
     SpokePool public _spokePool;
-    uint64 public _relayerFeePct = 1e18;
+    uint64 public _relayerFeePct = 1e16;
 
     mapping(bytes32 => address) _addressMap;
     mapping(bytes32 => uint8) _uint8Map;
