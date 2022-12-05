@@ -14,7 +14,7 @@ contract SADVault is BaseController {
     constructor(address socket_, address owner_)
     BaseController(socket_, owner_) {}
 
-    function deposit() external onlySatteliteCall {
+    function deposit() external onlySatelliteCall {
         uint256 depositAmount = getUint256(DEPOSIT_AMOUNT);
         depositAmount = depositAmount + _msg.amount;
 

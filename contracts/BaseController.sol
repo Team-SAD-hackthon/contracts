@@ -13,7 +13,7 @@ abstract contract BaseController is Hack, IPlug, ControllerStateCache {
         address token;
         uint256 amount;
         address sender;
-        uint256 satteliteSlug;
+        uint256 satelliteSlug;
     }
 
     ISocket public _socket__;
@@ -21,14 +21,14 @@ abstract contract BaseController is Hack, IPlug, ControllerStateCache {
     Msg internal _msg;
 
     error NotSocket();
-    error NotSattelite();
+    error NotSatellite();
 
     constructor(address socket_, address owner_) Hack(owner_) {
         _socket__ = ISocket(socket_);
     }
 
-    modifier onlySatteliteCall {
-        if (msg.sender != address(this)) revert NotSattelite();
+    modifier onlySatelliteCall {
+        if (msg.sender != address(this)) revert NotSatellite();
         _;
     }
 
@@ -61,7 +61,7 @@ abstract contract BaseController is Hack, IPlug, ControllerStateCache {
             address token,
             uint256 amount,
             address msgSender,
-            uint256 satteliteSlug,
+            uint256 satelliteSlug,
             bytes memory callData
         ) = abi.decode(payload_, (address, uint256, address, uint256, bytes));
 
@@ -69,7 +69,7 @@ abstract contract BaseController is Hack, IPlug, ControllerStateCache {
             token,
             amount,
             msgSender,
-            satteliteSlug
+            satelliteSlug
         );
 
         (bool success, bytes memory result) = address(this).call(
