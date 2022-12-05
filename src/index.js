@@ -3,39 +3,23 @@ const hre = require("hardhat");
 const inquirer = require("inquirer");
 const ethers = require("ethers");
 
-function getJsonRpcUrl(chain) {
-  let jsonRpcUrl;
-  switch (chain) {
-    case "arbitrum":
-      jsonRpcUrl = "https://arb1.arbitrum.io/rpc";
-      break;
-    case "optimism":
-      jsonRpcUrl = "https://mainnet.optimism.io";
-      break;
-    case "polygon":
-      jsonRpcUrl = "https://holy-young-sound.matic.quiknode.pro/daf7877129f05fb4a21448bdd023cdf6f0faeefc/";
-      break;
-    default:
-      jsonRpcUrl = "";
-  }
-
-  return jsonRpcUrl;
+const providers = {
+  '42161': new ethers.providers.JsonRpcProvider(""),
+  '10': new ethers.providers.JsonRpcProvider(""),
+  '137': new ethers.providers.JsonRpcProvider(""),
 }
 
 const socketAddress = {
-  polygon: {
-    address: "0x38e55351Dc02320A555b137e559D71f213694c15",
-    chainId: 137,
-  },
-  arbitrum: {
-    address: "0xa5b593ae839b3fe47983fc28da602a6deefbbc9d",
-    chainId: 42161,
-  },
-  optimism: {
-    address: "0x9E9b10A58a845B864265c49Fa24bb614f585498e",
-    chainId: 10,
-  },
-};
+  137: '0x38e55351Dc02320A555b137e559D71f213694c15',
+  10: '0x9E9b10A58a845B864265c49Fa24bb614f585498e',
+  42161: '0xa5b593ae839b3fe47983fc28da602a6deefbbc9d'
+}
+
+const chainToChainId = {
+  'arbitrum': 42161,
+  'optimism': 10,
+  'polygon': 137
+}
 
 let userParams;
 async function readFileData(path, fileName) {
@@ -54,16 +38,33 @@ async function readFileData(path, fileName) {
   writeStream.end();
 }
 
+const deployedSatellites = {
+  42161: "",
+  10: "",
+  137: "",
+}
+
+let deployedState = {}
+let deployedController = {}
+let deployedStateWriter = {}
+
+let satelliteContracts = {
+  42161: null,
+  10: null,
+  137: null,
+}
+
+let stateContract
+let controllerContract
+let stateWriterContract
+
 async function deploySatellite(_userParams) {
   // to deploy satellite on multiple chains
   for (let i = 0; i < _userParams.chains.length; i++) {
-    console.log("for loop", i);
-    const provider = new ethers.providers.JsonRpcProvider(
-      getJsonRpcUrl(_userParams.chains[0].toLowerCase())
-    );
-    // console.log(i, provider);
+    const chainName = _userParams.chains[i].toLowerCase();
+    const chainId = chainToChainId[chainName];
+    const provider = providers[chainId];
     let gasPrice;
-    // console.log("aloolelo", await provider.getBalance('0x46DF89d79919283C395937a8b5b262191626F8e5'));
     try {
       gasPrice = await provider.getGasPrice();
     } catch (e) {
@@ -74,53 +75,117 @@ async function deploySatellite(_userParams) {
     const Satellite = (
       await hre.ethers.getContractFactory("Satellite")
     ).connect(l1Wallet);
-    // console.log(i, Satellite);
-    const currentChain = socketAddress[_userParams.chains[i].toLowerCase()];
-    // console.log(i, currentChain);
-    // console.log('current chain', currentChain, gasPrice)
-    // console.log('current chain', currentChain.address)
-    const gasLimit = currentChain.chainId == 42161 ? 4500000 : 1800000; 
-    const mock = await Satellite.deploy(
-      currentChain.address,
-      "0x46DF89d79919283C395937a8b5b262191626F8e5",
-      currentChain.chainId,
-      { gasPrice: gasPrice.mul(ethers.BigNumber.from(2)), gasLimit: gasLimit }
-    );
-    // console.log("satellite mock", mock);
+    
+    const gasLimit = chainId == 42161 ? 6500000 : 2800000;
     try {
-      console.log(`Deploying on ${_userParams.chains[i]}...`);
-      const abc = await mock.deployed();
+      console.log(`Deploying Satellite on ${chainName}...`);
+      const satellite = await Satellite.deploy(
+        socketAddress[chainId],
+        "0x5fD7D0d6b91CC4787Bcb86ca47e0Bd4ea0346d34",
+        chainId,
+        { gasPrice: gasPrice.mul(ethers.BigNumber.from(2)), gasLimit: gasLimit }
+      );
+      await satellite.deployed();
+      deployedSatellites[chainId] = satellite.address;
+      satelliteContracts[chainId] = satellite;
       console.log(`Deployed`);
     } catch (e) {
-      console.log("Error", e);
+      console.error(e)
     }
   }
 }
 
-async function deployContract(contractName, arg, _userParams) {
+async function deployController(_userParams) {
   // to deploy user's contract (controller)
-  let chainToDeployOn;
+  let chainName;
   if (_userParams.scalability === "High") {
-    chainToDeployOn = "polygon";
+    chainName = "polygon";
   } else if (_userParams.scalability === "Medium") {
-    chainToDeployOn = "arbitrum";
+    chainName = "arbitrum";
   } else if (_userParams.scalability === "Low") {
-    chainToDeployOn = "optimism";
+    chainName = "optimism";
+  }
+  const chainId = chainToChainId[chainName]
+  const provider = providers[chainId];
+  const gasPrice = await provider.getGasPrice() * 2;
+  const l1Wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+  try {
+    console.log(`deploying controller on ${chainName}`)
+    const SADVault = (
+      await hre.ethers.getContractFactory('SADVault')
+    ).connect(l1Wallet);
+    const controller = await SADVault.deploy(socketAddress[chainId], "0x5fD7D0d6b91CC4787Bcb86ca47e0Bd4ea0346d34", { gasPrice })
+    await controller.deployed();
+    deployedController = {
+      chainId,
+      address: controller.address
+    }
+    controllerContract = controller
+
+    const StateWriter = (
+      await hre.ethers.getContractFactory('StateWriter')
+    ).connect(l1Wallet);
+    const stateWriter = await StateWriter.deploy(socketAddress[chainId], "0x5fD7D0d6b91CC4787Bcb86ca47e0Bd4ea0346d34", controller.address, { gasPrice })
+    await stateWriter.deployed();
+    deployedStateWriter = {
+      chainId,
+      address: stateWriter.address
+    }
+    stateWriterContract = stateWriter
+
+    console.log("deployed")
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+async function deployState(_userParams) {
+  let chainName;
+  if (_userParams.security === "High") {
+    chainName = "optimism";
+  } else if (_userParams.security === "Medium") {
+    chainName = "arbitrum";
+  } else if (_userParams.security === "Low") {
+    chainName = "polygon";
   }
 
-  const provider = new ethers.providers.JsonRpcProvider(
-    getJsonRpcUrl(chainToDeployOn)
-  );
-  const gasPrice = await provider.getGasPrice();
+  const chainId = chainToChainId[chainName]
+  const provider = providers[chainId];
+  const gasPrice = await provider.getGasPrice() * 2;
   const l1Wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-  const Master = await (
-    await hre.ethers.getContractFactory(`${contractName}`)
-  ).connect(l1Wallet);
-  const mock = await Master.deploy(arg, { gasPrice });
 
-  await mock.deployed();
+  try {
+    console.log(`deploying state on ${chainName}`)
+    const State = (
+      await hre.ethers.getContractFactory('State')
+    ).connect(l1Wallet);
+    const state = await State.deploy(socketAddress[chainId], "0x5fD7D0d6b91CC4787Bcb86ca47e0Bd4ea0346d34", chainId, { gasPrice })
+    await state.deployed();
+    deployedState = {
+      chainId,
+      address: state.address
+    }
+    stateContract = state
+    console.log("deployed")
+  } catch (e) {
+    console.error(e)
+  }
+}
 
-  // deploySatellite()
+async function configure() {
+  await Promise.all(Object.keys(satelliteContracts).map(async (chainId) => {
+    const sat = deployedSatellites[chainId];
+    if (!sat) return;
+    try {
+      console.log(`configuring satellite ${chainId}`)
+      console.log(deployedState.chainId, deployedState.address)
+      await sat.configureState(deployedState.chainId, deployedState.address);
+      console.log(deployedController.chainId, deployedController.address)
+      await sat.configureController(deployedController.chainId, deployedController.address);
+    } catch (e) {
+      console.error(e);
+    }
+  }))
 }
 
 function main() {
@@ -164,8 +229,15 @@ function main() {
       // TODO: Enable later
       // await readFileData(answers.protocol, answers.protocolName);
       // Deploy the contract
-      // deployContract(answers.protocolName, answers.arg, answers);
-      deploySatellite(answers);
+      // deployController(answers.protocolName, answers.arg, answers);
+      await deploySatellite(answers);
+      await deployController(answers);
+      await deployState(answers);
+      console.log('deployedSatellites', deployedSatellites);
+      console.log('deployedController', deployedController);
+      console.log('deployedState', deployedState);
+      console.log('deployedStateWriter', deployedStateWriter);
+      // await configure();
     })
     .catch((error) => {
       if (error.isTtyError) {
