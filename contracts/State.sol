@@ -65,13 +65,13 @@ contract State is Hack, IPlug {
         _socket__ = ISocket(socket_);
     }
 
-    function configureController(uint256 controllerChainSlug_, address controllerAddress_)
+    function configureStateWriter(uint256 stateWriterChainSlug_, address stateWriterAddress_)
         external
         onlyOwner
     {
         _socket__.setPlugConfig(
-            controllerChainSlug_,
-            controllerAddress_,
+            stateWriterChainSlug_,
+            stateWriterAddress_,
             "FAST"
         );
     }
