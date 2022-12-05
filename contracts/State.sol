@@ -65,7 +65,7 @@ contract State is Hack, IPlug {
         _socket__ = ISocket(socket_);
     }
 
-    function configure(uint256 controllerChainSlug_, address controllerAddress_)
+    function configureController(uint256 controllerChainSlug_, address controllerAddress_)
         external
         onlyOwner
     {
